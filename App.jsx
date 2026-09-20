@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import Admin from "./Admin.jsx";
 
 /* =========================================================================
    1. CONFIGURAÇÃO DA MARCA  — edite só esta parte para trocar dados
    ========================================================================= */
-const CONFIG = {
+let CONFIG = {
   marca: "CRZA",
   whatsapp: "5531999999999",          // DDI + DDD + número, só dígitos
   instagram: "crza.oficial",
@@ -12,13 +13,20 @@ const CONFIG = {
   descontoPix: 0.05,                  // 5%
   parcelas: 3,                        // 3x sem juros
   freteGratisAcima: 299,
+  heroTitulo: "O sol já sabe o seu nome.",
+  heroTexto: "Moda para vestir o seu melhor — com conforto, leveza e elegância em cada detalhe. Corte limpo, caimento firme, nada sobrando.",
+  identidadeTitulo: "Moda para se sentir bonita, confortável e elegante.",
+  identidadeTexto: "A CRZA nasceu em Ouro Preto com uma ideia simples: criar peças que façam você se sentir especial, confortável e confiante.",
+  colecaoTitulo: "Novos capítulos começam aqui.",
+  colecaoTexto: "A CRZA começa no beachwear, mas foi criada para crescer com você: roupas leves, academia, casual e novos capítulos do seu estilo.",
+  mensagemWhatsApp: "Oi! Vim pelo site da CRZA e tenho uma dúvida.",
 };
 
 /* =========================================================================
    2. IMAGENS — cole a URL da foto. Vazio = arte provisória gerada em SVG.
       Ex.: hero: "https://meusite.com/fotos/hero.jpg"
    ========================================================================= */
-const IMAGES = {
+let IMAGES = {
   hero: "",
   sobre: "",
   colecao: "",
@@ -36,18 +44,19 @@ const IMAGES = {
 const TAMANHOS = ["PP", "P", "M", "G", "GG"];
 
 const CORES = {
-  marinho:  { nome: "Azul marinho", hex: "#071A33" },
+  marinho: { nome: "Azul-marinho", hex: "#071A33" },
   azul:     { nome: "Azul",         hex: "#12345A" },
   branco:   { nome: "Branco",       hex: "#FFFFFF" },
-  areia:    { nome: "Areia",        hex: "#E8E2D8" },
-  ceu:      { nome: "Azul claro",   hex: "#DCE8F4" },
+  areia:    { nome: "Areia",        hex: "#E8E3DB" },
 };
 
-const PRODUTOS = [
-  { id:"aura", nome:"Aura", preco:110, categoria:"Biquínis", modelagem:"Cortininha", cores:["marinho","branco","azul"], tecido:"Poliamida com proteção UV", bojo:true, destaque:true, descricao:"Cortininha de amarração regulável nos dois lados. Bojo removível e acabamento pensado para conforto e segurança." },
-  { id:"bali", nome:"Bali", preco:100, categoria:"Biquínis", modelagem:"Tomara que caia", cores:["branco","marinho","ceu"], tecido:"Poliamida com proteção UV", bojo:true, destaque:true, descricao:"Tomara que caia com acabamento firme e bojo removível. Uma peça limpa, elegante e fácil de combinar." },
-  { id:"duna", nome:"Duna", preco:90, categoria:"Biquínis", modelagem:"Meia taça", cores:["azul","marinho","areia"], tecido:"Poliamida com proteção UV", bojo:false, destaque:true, descricao:"Meia taça de alcinha fina, leve e confortável para acompanhar dias de sol, praia e descanso." },
+let PRODUTOS = [
+  { id:"aura", nome:"Aura", preco:110, categoria:"Biquínis", modelagem:"Cortininha", cores:["marinho","branco"], tecido:"Poliamida com proteção UV", bojo:true, destaque:true, descricao:"Cortininha de amarração regulável, criada para unir conforto, segurança e um visual elegante." },
+  { id:"bali", nome:"Bali", preco:100, categoria:"Biquínis", modelagem:"Tomara que caia", cores:["marinho","branco","areia"], tecido:"Poliamida com proteção UV", bojo:true, destaque:true, descricao:"Tomara que caia com sustentação confortável e acabamento limpo. Uma peça essencial para dias de verão." },
+  { id:"duna", nome:"Duna", preco:90, categoria:"Biquínis", modelagem:"Meia taça", cores:["marinho","branco"], tecido:"Poliamida com proteção UV", bojo:false, destaque:true, descricao:"Meia taça leve e elegante, pensada para acompanhar dias de praia com liberdade e conforto." },
 ];
+
+let CATEGORIAS = ["Biquínis", "Roupas leves", "Academia"];
 
 const MEDIDAS = [
   ["PP", "78–82", "60–64", "86–90"],
@@ -56,6 +65,40 @@ const MEDIDAS = [
   ["G",  "93–97", "75–79", "101–105"],
   ["GG", "98–104","80–86", "106–112"],
 ];
+
+/* =========================================================================
+   4. DADOS EDITÁVEIS PELO PAINEL
+   ========================================================================= */
+const CRZA_STORAGE = "crza:site-data:v1";
+const DADOS_PADRAO = () => ({
+  config: JSON.parse(JSON.stringify(CONFIG)),
+  images: JSON.parse(JSON.stringify(IMAGES)),
+  produtos: JSON.parse(JSON.stringify(PRODUTOS)),
+  categorias: [...CATEGORIAS],
+});
+
+function carregarDados() {
+  try {
+    const salvo = localStorage.getItem(CRZA_STORAGE);
+    if (!salvo) return DADOS_PADRAO();
+    const d = JSON.parse(salvo);
+    return { ...DADOS_PADRAO(), ...d, config: { ...CONFIG, ...(d.config || {}) }, images: { ...IMAGES, ...(d.images || {}), produtos: { ...IMAGES.produtos, ...(d.images?.produtos || {}) } }, produtos: d.produtos || PRODUTOS, categorias: d.categorias || CATEGORIAS };
+  } catch { return DADOS_PADRAO(); }
+}
+
+function aplicarDados(dados) {
+  CONFIG = dados.config;
+  IMAGES = dados.images;
+  PRODUTOS = dados.produtos;
+  CATEGORIAS = dados.categorias;
+  try { localStorage.setItem(CRZA_STORAGE, JSON.stringify(dados)); } catch {}
+}
+
+const DADOS_INICIAIS = carregarDados();
+CONFIG = DADOS_INICIAIS.config;
+IMAGES = DADOS_INICIAIS.images;
+PRODUTOS = DADOS_INICIAIS.produtos;
+CATEGORIAS = DADOS_INICIAIS.categorias;
 
 /* =========================================================================
    4. UTILITÁRIOS
@@ -137,10 +180,10 @@ const IconeZap    = (p) => (
    6. ARTE PROVISÓRIA (SVG) — usada enquanto não há foto real
    ========================================================================= */
 const PALETAS = [
-  ["#12345A", "#071A33", "#DCE8F4"],
-  ["#DCE8F4", "#12345A", "#FFFFFF"],
-  ["#315A80", "#071A33", "#E8E2D8"],
-  ["#6C88A3", "#12345A", "#F7F8FA"],
+  ["#12345A", "#071A33", "#F7F8FA"],
+  ["#234C78", "#071A33", "#FFFFFF"],
+  ["#456A91", "#12345A", "#E8E3DB"],
+  ["#0B2748", "#071A33", "#FFFFFF"],
 ];
 
 function ArteProvisoria({ semente = 0, retrato = true, rotulo }) {
@@ -195,10 +238,10 @@ function Foto({ src, alt, semente = 0, retrato = true, className = "" }) {
 function Botao({ children, variante = "cheio", como = "button", className = "", ...props }) {
   const base = "inline-flex items-center justify-center gap-2 px-7 py-3.5 text-[13px] tracking-[0.14em] font-medium transition-colors duration-300 rounded-full";
   const estilos = {
-    cheio:  "bg-azul text-offwhite hover:bg-azulesc",
-    linha:  "border border-marinho/35 text-marinho hover:bg-marinho hover:text-offwhite",
-    claro:  "bg-offwhite text-marinho hover:bg-areia",
-    escuro: "bg-marinho text-offwhite hover:bg-azul",
+    cheio:  "bg-terra text-offwhite hover:bg-terraesc",
+    linha:  "border border-cacau/35 text-cacau hover:bg-cacau hover:text-offwhite",
+    claro:  "bg-offwhite text-cacau hover:bg-areia",
+    escuro: "bg-cacau text-offwhite hover:bg-terra",
   };
   const Tag = como;
   return <Tag className={`${base} ${estilos[variante]} ${className}`} {...props}>{children}</Tag>;
@@ -213,7 +256,7 @@ function Amostra({ corId, ativa, onClick, tamanho = 26 }) {
   const c = CORES[corId];
   return (
     <button type="button" onClick={onClick} title={c.nome} aria-label={`Cor ${c.nome}`} aria-pressed={ativa}
-      className={`rounded-full border transition-all duration-200 ${ativa ? "border-marinho scale-110" : "border-marinho/20 hover:border-marinho/60"}`}
+      className={`rounded-full border transition-all duration-200 ${ativa ? "border-cacau scale-110" : "border-cacau/20 hover:border-cacau/60"}`}
       style={{ width: tamanho, height: tamanho, padding: 3 }}>
       <span className="block w-full h-full rounded-full" style={{ background: c.hex }} />
     </button>
@@ -227,9 +270,9 @@ function CardProduto({ produto, onAbrir, indice = 0 }) {
       <button type="button" onClick={() => onAbrir(produto)} className="w-full text-left">
         <div className="relative aspect-[3/4] overflow-hidden bg-areia">
           <div className="w-full h-full transition-transform duration-700 group-hover:scale-[1.04]">
-            <Foto src={fotos[0]} alt={`${produto.nome} — CRZA`} semente={indice} className="w-full h-full" />
+            <Foto src={fotos[0]} alt={`Biquíni ${produto.nome}`} semente={indice} className="w-full h-full" />
           </div>
-          <span className="absolute left-4 top-4 bg-offwhite/90 backdrop-blur px-3 py-1 text-[11px] tracking-[0.12em] text-marinho">
+          <span className="absolute left-4 top-4 bg-offwhite/90 backdrop-blur px-3 py-1 text-[11px] tracking-[0.12em] text-cacau">
             {produto.modelagem}
           </span>
         </div>
@@ -237,16 +280,16 @@ function CardProduto({ produto, onAbrir, indice = 0 }) {
           <h3 className="font-display text-[22px] font-light">{produto.nome}</h3>
           <span className="text-[15px]">{brl(produto.preco)}</span>
         </div>
-        <p className="text-[13px] text-marinho/55 mt-1">
+        <p className="text-[13px] text-cacau/55 mt-1">
           {brl(comPix(produto.preco))} no Pix · {CONFIG.parcelas}x de {brl(parcela(produto.preco))}
         </p>
       </button>
       <div className="flex items-center gap-2 mt-3">
         {produto.cores.map((c) => (
-          <span key={c} title={CORES[c].nome} className="w-3.5 h-3.5 rounded-full border border-marinho/15" style={{ background: CORES[c].hex }} />
+          <span key={c} title={CORES[c].nome} className="w-3.5 h-3.5 rounded-full border border-cacau/15" style={{ background: CORES[c].hex }} />
         ))}
         <button type="button" onClick={() => onAbrir(produto)}
-          className="ml-auto text-[12px] tracking-[0.12em] text-azul hover:text-azulesc border-b border-azul/40 pb-0.5 transition-colors">
+          className="ml-auto text-[12px] tracking-[0.12em] text-terra hover:text-terraesc border-b border-terra/40 pb-0.5 transition-colors">
           Escolher tamanho
         </button>
       </div>
@@ -262,7 +305,7 @@ function Cabecalho({ pagina, irPara, contagem, abrirCarrinho, abrirBusca }) {
   const [menuAberto, setMenuAberto] = useState(false);
   const links = [
     ["inicio", "Início"], ["biquinis", "Biquínis"], ["colecao", "Coleções"],
-    ["sobre", "Sobre a CRZA"], ["contato", "Contato"],
+    ["sobre", "Sobre nós"], ["contato", "Contato"],
   ];
 
   useEffect(() => {
@@ -278,11 +321,11 @@ function Cabecalho({ pagina, irPara, contagem, abrirCarrinho, abrirBusca }) {
 
   return (
     <>
-      <header className={`fixed left-0 right-0 z-40 transition-colors duration-500 ${rolou || pagina !== "inicio" ? "bg-offwhite/95 backdrop-blur-md border-b border-marinho/10" : "bg-transparent"}`}
+      <header className={`fixed left-0 right-0 z-40 transition-colors duration-500 ${rolou || pagina !== "inicio" ? "bg-offwhite/95 backdrop-blur-md border-b border-cacau/10" : "bg-transparent"}`}
               style={{ top: 0, paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="max-w-[1280px] mx-auto px-5 md:px-10 h-[68px] flex items-center justify-between gap-4">
           <button type="button" onClick={() => navegar("inicio")} aria-label="CRZA, ir para a página inicial"
-            className={`font-display text-[26px] md:text-[30px] tracking-[0.34em] font-normal pl-[0.34em] transition-colors ${rolou || pagina !== "inicio" ? "text-marinho" : "text-offwhite"}`}>
+            className={`font-display text-[26px] md:text-[30px] tracking-[0.34em] font-normal pl-[0.34em] transition-colors ${rolou || pagina !== "inicio" ? "text-cacau" : "text-offwhite"}`}>
             CRZA
           </button>
 
@@ -290,21 +333,21 @@ function Cabecalho({ pagina, irPara, contagem, abrirCarrinho, abrirBusca }) {
             {links.map(([id, rotulo]) => (
               <button key={id} type="button" onClick={() => navegar(id)}
                 className={`text-[13px] tracking-[0.1em] pb-1 border-b transition-colors ${
-                  pagina === id ? "border-azul" : "border-transparent hover:border-current"
-                } ${rolou || pagina !== "inicio" ? "text-marinho" : "text-offwhite"}`}>
+                  pagina === id ? "border-terra" : "border-transparent hover:border-current"
+                } ${rolou || pagina !== "inicio" ? "text-cacau" : "text-offwhite"}`}>
                 {rotulo}
               </button>
             ))}
           </nav>
 
-          <div className={`flex items-center gap-1 ${rolou || pagina !== "inicio" ? "text-marinho" : "text-offwhite"}`}>
+          <div className={`flex items-center gap-1 ${rolou || pagina !== "inicio" ? "text-cacau" : "text-offwhite"}`}>
             <button type="button" onClick={abrirBusca} aria-label="Buscar produtos" className="p-2.5 hover:opacity-60 transition-opacity">
               <IconeBusca tam={19} />
             </button>
             <button type="button" onClick={abrirCarrinho} aria-label={`Carrinho, ${contagem} ${contagem === 1 ? "item" : "itens"}`} className="p-2.5 relative hover:opacity-60 transition-opacity">
               <IconeSacola tam={19} />
               {contagem > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-azul text-offwhite text-[10px] w-[18px] h-[18px] rounded-full grid place-items-center font-medium">
+                <span className="absolute -top-0.5 -right-0.5 bg-terra text-offwhite text-[10px] w-[18px] h-[18px] rounded-full grid place-items-center font-medium">
                   {contagem}
                 </span>
               )}
@@ -317,7 +360,7 @@ function Cabecalho({ pagina, irPara, contagem, abrirCarrinho, abrirBusca }) {
       </header>
 
       {menuAberto && (
-        <div className="fixed inset-0 z-50 bg-marinho text-offwhite flex flex-col md:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <div className="fixed inset-0 z-50 bg-cacau text-offwhite flex flex-col md:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
           <div className="h-[68px] px-5 flex items-center justify-between">
             <span className="font-display text-[26px] tracking-[0.34em] pl-[0.34em]">CRZA</span>
             <button type="button" onClick={() => setMenuAberto(false)} aria-label="Fechar menu" className="p-2.5"><IconeX tam={22} /></button>
@@ -333,7 +376,7 @@ function Cabecalho({ pagina, irPara, contagem, abrirCarrinho, abrirBusca }) {
           </nav>
           <div className="px-7 pb-8 flex items-center gap-4 text-offwhite/70">
             <a href={insta} target="_blank" rel="noopener noreferrer" className="p-2" aria-label="Instagram"><IconeInsta tam={20} /></a>
-            <a href={zap("Oi! Vim pelo site da CRZA.")} target="_blank" rel="noopener noreferrer" className="p-2" aria-label="WhatsApp"><IconeZap tam={20} /></a>
+            <a href={zap(CONFIG.mensagemWhatsApp)} target="_blank" rel="noopener noreferrer" className="p-2" aria-label="WhatsApp"><IconeZap tam={20} /></a>
           </div>
         </div>
       )}
@@ -346,25 +389,24 @@ function Cabecalho({ pagina, irPara, contagem, abrirCarrinho, abrirBusca }) {
    ========================================================================= */
 function Hero({ irPara }) {
   return (
-    <section className="relative min-h-[88svh] md:min-h-screen flex items-end overflow-hidden bg-marinho">
+    <section className="relative min-h-[88svh] md:min-h-screen flex items-end overflow-hidden bg-cacau">
       <div className="absolute inset-0 revelar">
         <Foto src={IMAGES.hero} alt="Modelo usando biquíni CRZA na praia" semente={0} className="w-full h-full" />
-        <div className="absolute inset-0 bg-gradient-to-t from-marinho/80 via-marinho/20 to-marinho/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-cacau/80 via-cacau/20 to-cacau/40" />
       </div>
 
       <div className="relative w-full max-w-[1280px] mx-auto px-5 md:px-10 pb-16 md:pb-24">
         <div className="max-w-[640px]">
           <Titulo nivel="h1" className="text-offwhite text-[46px] sm:text-[64px] md:text-[86px] subir" style={{ animationDelay: "200ms" }}>
-            Vista o que faz<br />você se sentir especial.
+            {CONFIG.heroTitulo.split("\n").map((linha, i) => <span key={i}>{linha}{i < CONFIG.heroTitulo.split("\n").length - 1 && <br />}</span>)}
           </Titulo>
           <p className="text-offwhite/80 text-[16px] md:text-[18px] leading-relaxed mt-6 max-w-[430px] subir" style={{ animationDelay: "340ms" }}>
-            Moda leve, confortável e elegante para acompanhar o seu jeito de viver.
-            Peças pensadas para vestir bem, durar e fazer você se sentir incrível.
+            {CONFIG.heroTexto}
           </p>
           <div className="flex flex-wrap items-center gap-3 mt-9 subir" style={{ animationDelay: "460ms" }}>
-            <Botao onClick={() => irPara("biquinis")} variante="cheio">Explorar biquínis</Botao>
-            <Botao onClick={() => irPara("colecao")} variante="claro" className="bg-transparent text-offwhite border border-offwhite/40 hover:bg-offwhite hover:text-marinho">
-              Conhecer a CRZA
+            <Botao onClick={() => irPara("biquinis")} variante="cheio">Comprar agora</Botao>
+            <Botao onClick={() => irPara("colecao")} variante="claro" className="bg-transparent text-offwhite border border-offwhite/40 hover:bg-offwhite hover:text-cacau">
+              Ver a coleção
             </Botao>
           </div>
         </div>
@@ -387,13 +429,13 @@ function Destaques({ onAbrir, irPara }) {
       <div className="flex flex-wrap items-end justify-between gap-6 mb-12">
         <div>
           <Titulo className="text-[36px] md:text-[52px]">Destaques</Titulo>
-          <p className="text-marinho/60 mt-3 max-w-[420px] leading-relaxed">
-            Peças para viver o verão com conforto, presença e elegância.
+          <p className="text-cacau/60 mt-3 max-w-[420px] leading-relaxed">
+            Os três cortes da linha Biquínis, feitos para repetir o verão inteiro.
           </p>
         </div>
         <button type="button" onClick={() => irPara("biquinis")}
-          className="text-[13px] tracking-[0.12em] text-azul hover:text-azulesc border-b border-azul/40 pb-1 transition-colors">
-          Conhecer a CRZA
+          className="text-[13px] tracking-[0.12em] text-terra hover:text-terraesc border-b border-terra/40 pb-1 transition-colors">
+          Ver todos os biquínis
         </button>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-12 md:gap-x-8">
@@ -403,66 +445,34 @@ function Destaques({ onAbrir, irPara }) {
   );
 }
 
-function CategoriasFuturas({ irPara }) {
-  const categorias = [
-    { titulo: "Beachwear", texto: "Biquínis e peças para dias de sol.", acao: "Ver biquínis", id: "biquinis", classe: "bg-marinho text-offwhite" },
-    { titulo: "Moda leve", texto: "Peças para vestir com liberdade e elegância.", acao: "Em breve", id: "colecao", classe: "bg-areia text-marinho" },
-    { titulo: "Academia", texto: "Conforto e presença para acompanhar seu movimento.", acao: "Em breve", id: "colecao", classe: "bg-azul text-offwhite" },
-  ];
-  return (
-    <section className="border-y border-marinho/10">
-      <div className="max-w-[1280px] mx-auto px-5 md:px-10 py-16 md:py-24">
-        <div className="mb-10 md:mb-14">
-          <p className="text-[12px] tracking-[0.2em] text-azul uppercase">O universo CRZA</p>
-          <Titulo className="text-[38px] md:text-[56px] mt-3 max-w-[700px]">Uma marca para muito além do beachwear.</Titulo>
-        </div>
-        <div className="grid md:grid-cols-3 gap-4 md:gap-5">
-          {categorias.map((c) => (
-            <button key={c.titulo} type="button" onClick={() => irPara(c.id)} className={`${c.classe} min-h-[260px] md:min-h-[330px] p-7 md:p-9 text-left flex flex-col justify-between rounded-[2px] group hover:-translate-y-1 transition-transform duration-500`}>
-              <span className="text-[11px] tracking-[0.18em] uppercase opacity-60">CRZA</span>
-              <span>
-                <span className="block font-display text-[34px] md:text-[42px] leading-none">{c.titulo}</span>
-                <span className="block mt-4 text-[14px] leading-relaxed opacity-70 max-w-[270px]">{c.texto}</span>
-                <span className="inline-flex mt-7 text-[11px] tracking-[0.16em] uppercase border-b border-current/40 pb-1">{c.acao}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function Identidade() {
   const pontos = [
-    ["Qualidade que acompanha você", "Materiais escolhidos para unir conforto, caimento e durabilidade."],
-    ["Feito com intenção", "Cada peça nasce com atenção aos detalhes e uma estética que foge do óbvio."],
-    ["Estilo sem esforço", "Design pensado para vestir bem, com beleza, conforto e elegância no mesmo lugar."],
+    ["Tecido que aguenta o mar", "Poliamida com proteção UV 50+, forro duplo e costura reforçada. Cloro, sal e sol não abrem o tom."],
+    ["Feito em pequena escala", "Cada corte sai em lote reduzido. Sem estoque parado, sem peça que ninguém quis."],
+    ["Conforto que acompanha", "Modelagens pensadas para vestir bem, se mover com liberdade e continuar elegantes."],
   ];
   return (
     <section className="bg-areia">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 py-20 md:py-28 grid lg:grid-cols-[0.95fr_1.05fr] gap-12 lg:gap-20 items-center">
         <div className="relative">
           <Foto src={IMAGES.sobre} alt="Detalhe de um biquíni CRZA" semente={2} className="aspect-[4/5] w-full" />
-          <div className="absolute -bottom-6 -right-4 md:-right-8 bg-marinho text-offwhite px-7 py-6 max-w-[210px]">
+          <div className="absolute -bottom-6 -right-4 md:-right-8 bg-cacau text-offwhite px-7 py-6 max-w-[210px]">
             <p className="font-display text-[30px] leading-none">CRZA</p>
-            <p className="text-offwhite/65 text-[13px] mt-2 leading-snug">De {CONFIG.cidade} para onde a CRZA quiser chegar.</p>
+            <p className="text-offwhite/65 text-[13px] mt-2 leading-snug">De {CONFIG.cidade} para onde a moda levar.</p>
           </div>
         </div>
         <div>
           <Titulo className="text-[36px] md:text-[54px] max-w-[500px]">
-            Moda que faz você se sentir bem no próprio corpo.
+            {CONFIG.identidadeTitulo}
           </Titulo>
-          <p className="text-marinho/70 leading-relaxed mt-6 max-w-[520px]">
-            A CRZA nasceu em Ouro Preto, Minas Gerais, com uma vontade simples: criar moda que faça você se sentir
-            linda, confortável e elegante. Começamos pelo beachwear, mas a nossa visão vai muito além dele —
-            queremos construir uma marca para diferentes momentos da sua vida.
+          <p className="text-cacau/70 leading-relaxed mt-6 max-w-[520px]">
+            {CONFIG.identidadeTexto}
           </p>
           <dl className="mt-10 space-y-7 max-w-[520px]">
             {pontos.map(([titulo, texto]) => (
-              <div key={titulo} className="border-t border-marinho/15 pt-5">
+              <div key={titulo} className="border-t border-cacau/15 pt-5">
                 <dt className="font-display text-[21px] font-normal">{titulo}</dt>
-                <dd className="text-marinho/65 text-[15px] leading-relaxed mt-1.5">{texto}</dd>
+                <dd className="text-cacau/65 text-[15px] leading-relaxed mt-1.5">{texto}</dd>
               </div>
             ))}
           </dl>
@@ -474,17 +484,17 @@ function Identidade() {
 
 function BannerColecao({ irPara }) {
   return (
-    <section className="relative overflow-hidden bg-marinho">
+    <section className="relative overflow-hidden bg-cacau">
       <div className="absolute inset-0 opacity-70">
         <Foto src={IMAGES.colecao} alt="Nova coleção CRZA" semente={3} retrato={false} className="w-full h-full" />
-        <div className="absolute inset-0 bg-gradient-to-r from-marinho via-marinho/70 to-marinho/25" />
+        <div className="absolute inset-0 bg-gradient-to-r from-cacau via-cacau/70 to-cacau/25" />
       </div>
       <div className="relative max-w-[1280px] mx-auto px-5 md:px-10 py-24 md:py-36">
         <div className="max-w-[520px]">
-          <p className="text-azul text-[13px] tracking-[0.22em] mb-5">NOVOS CAPÍTULOS</p>
-          <Titulo className="text-offwhite text-[40px] md:text-[64px]">Coleção CRZA</Titulo>
+          <p className="text-terra text-[13px] tracking-[0.22em] mb-5">UMA MARCA EM MOVIMENTO</p>
+          <Titulo className="text-offwhite text-[40px] md:text-[64px]">{CONFIG.colecaoTitulo}</Titulo>
           <p className="text-offwhite/75 leading-relaxed mt-5 max-w-[440px]">
-            Beachwear, roupas leves e novas formas de vestir a CRZA. Entre para receber as novidades primeiro.
+            {CONFIG.colecaoTexto}
           </p>
           <div className="mt-9">
             <Botao onClick={() => irPara("colecao")} variante="cheio">Entrar na lista</Botao>
@@ -501,7 +511,7 @@ function SecaoInstagram() {
       <div className="flex flex-wrap items-end justify-between gap-4 mb-9">
         <Titulo className="text-[32px] md:text-[46px]">No Instagram</Titulo>
         <a href={insta} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-[13px] tracking-[0.12em] text-azul hover:text-azulesc border-b border-azul/40 pb-1 transition-colors">
+          className="inline-flex items-center gap-2 text-[13px] tracking-[0.12em] text-terra hover:text-terraesc border-b border-terra/40 pb-1 transition-colors">
           <IconeInsta tam={16} /> @{CONFIG.instagram}
         </a>
       </div>
@@ -512,7 +522,7 @@ function SecaoInstagram() {
             <div className="w-full h-full transition-transform duration-500 group-hover:scale-105">
               <Foto src={src} alt="" semente={i + 1} retrato={false} className="w-full h-full" />
             </div>
-            <span className="absolute inset-0 bg-marinho/0 group-hover:bg-marinho/35 transition-colors grid place-items-center text-offwhite opacity-0 group-hover:opacity-100">
+            <span className="absolute inset-0 bg-cacau/0 group-hover:bg-cacau/35 transition-colors grid place-items-center text-offwhite opacity-0 group-hover:opacity-100">
               <IconeInsta tam={22} />
             </span>
           </a>
@@ -555,27 +565,27 @@ function PaginaBiquinis({ onAbrir, buscaInicial = "" }) {
     <div className="pt-[68px]">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 pt-14 md:pt-20">
         <Titulo nivel="h1" className="text-[42px] md:text-[64px]">Biquínis</Titulo>
-        <p className="text-marinho/60 mt-3 max-w-[480px] leading-relaxed">
+        <p className="text-cacau/60 mt-3 max-w-[480px] leading-relaxed">
           Todas as peças com proteção UV 50+. Frete grátis acima de {brl(CONFIG.freteGratisAcima)}.
         </p>
       </div>
 
-      <div className="sticky z-30 bg-offwhite/95 backdrop-blur border-y border-marinho/10 mt-10"
+      <div className="sticky z-30 bg-offwhite/95 backdrop-blur border-y border-cacau/10 mt-10"
            style={{ top: "calc(68px + env(safe-area-inset-top, 0px))" }}>
         <div className="max-w-[1280px] mx-auto px-5 md:px-10 py-4 flex flex-wrap items-center gap-3">
           <label className="relative flex-1 min-w-[200px]">
             <span className="sr-only">Buscar biquínis</span>
-            <IconeBusca tam={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-marinho/40" />
+            <IconeBusca tam={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-cacau/40" />
             <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por nome ou modelagem"
-              className="w-full bg-transparent border border-marinho/20 rounded-full pl-10 pr-4 py-2.5 text-[14px] placeholder:text-marinho/40 focus:border-azul outline-none transition-colors" />
+              className="w-full bg-transparent border border-cacau/20 rounded-full pl-10 pr-4 py-2.5 text-[14px] placeholder:text-cacau/40 focus:border-terra outline-none transition-colors" />
           </label>
 
           <div className="scroll-x flex items-center gap-2 max-w-full">
             {modelagens.map((m) => (
               <button key={m} type="button" onClick={() => setModelagem(m)}
                 className={`whitespace-nowrap px-4 py-2 rounded-full text-[13px] border transition-colors ${
-                  modelagem === m ? "bg-marinho text-offwhite border-marinho" : "border-marinho/20 hover:border-marinho/50"}`}>
+                  modelagem === m ? "bg-cacau text-offwhite border-cacau" : "border-cacau/20 hover:border-cacau/50"}`}>
                 {m === "todas" ? "Todas as modelagens" : m}
               </button>
             ))}
@@ -583,7 +593,7 @@ function PaginaBiquinis({ onAbrir, buscaInicial = "" }) {
 
           <div className="flex items-center gap-2 pl-1">
             <button type="button" onClick={() => setCor("todas")} title="Todas as cores" aria-pressed={cor === "todas"}
-              className={`px-3 py-2 rounded-full text-[13px] border transition-colors ${cor === "todas" ? "bg-marinho text-offwhite border-marinho" : "border-marinho/20 hover:border-marinho/50"}`}>
+              className={`px-3 py-2 rounded-full text-[13px] border transition-colors ${cor === "todas" ? "bg-cacau text-offwhite border-cacau" : "border-cacau/20 hover:border-cacau/50"}`}>
               Cores
             </button>
             {Object.keys(CORES).map((c) => (
@@ -591,10 +601,10 @@ function PaginaBiquinis({ onAbrir, buscaInicial = "" }) {
             ))}
           </div>
 
-          <label className="ml-auto flex items-center gap-2 text-[13px] text-marinho/60">
+          <label className="ml-auto flex items-center gap-2 text-[13px] text-cacau/60">
             <span className="sr-only sm:not-sr-only">Ordenar</span>
             <select value={ordem} onChange={(e) => setOrdem(e.target.value)}
-              className="bg-transparent border border-marinho/20 rounded-full px-3 py-2 text-marinho focus:border-azul outline-none">
+              className="bg-transparent border border-cacau/20 rounded-full px-3 py-2 text-cacau focus:border-terra outline-none">
               <option value="relevancia">Relevância</option>
               <option value="menor">Menor preço</option>
               <option value="maior">Maior preço</option>
@@ -604,15 +614,15 @@ function PaginaBiquinis({ onAbrir, buscaInicial = "" }) {
       </div>
 
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 py-12 md:py-16">
-        <p className="text-[13px] text-marinho/50 mb-8">
+        <p className="text-[13px] text-cacau/50 mb-8">
           {lista.length} {lista.length === 1 ? "peça" : "peças"}
-          {filtrando && <button type="button" onClick={limparFiltros} className="ml-3 text-azul border-b border-azul/40 pb-0.5">limpar filtros</button>}
+          {filtrando && <button type="button" onClick={limparFiltros} className="ml-3 text-terra border-b border-terra/40 pb-0.5">limpar filtros</button>}
         </p>
 
         {lista.length === 0 ? (
           <div className="py-20 text-center">
             <Titulo className="text-[28px]">Nada encontrado com esses filtros</Titulo>
-            <p className="text-marinho/55 mt-3">Tente outro termo ou limpe a busca para ver toda a coleção.</p>
+            <p className="text-cacau/55 mt-3">Tente outra modelagem ou cor — ou limpe a busca para ver a vitrine inteira.</p>
             <div className="mt-7"><Botao variante="linha" onClick={limparFiltros}>Ver todas as peças</Botao></div>
           </div>
         ) : (
@@ -631,7 +641,7 @@ function PaginaBiquinis({ onAbrir, buscaInicial = "" }) {
 function PaginaColecao({ onAbrir, irPara }) {
   const [email, setEmail] = useState("");
   const [enviado, setEnviado] = useState(false);
-  const daColecao = PRODUTOS;
+  const daColecao = PRODUTOS.filter((p) => p.destaque);
 
   const inscrever = () => {
     if (!email.includes("@")) return;
@@ -641,15 +651,16 @@ function PaginaColecao({ onAbrir, irPara }) {
 
   return (
     <div className="pt-[68px]">
-      <section className="relative bg-marinho overflow-hidden">
+      <section className="relative bg-cacau overflow-hidden">
         <div className="absolute inset-0 opacity-60">
           <Foto src={IMAGES.colecao} alt="" semente={3} retrato={false} className="w-full h-full" />
-          <div className="absolute inset-0 bg-gradient-to-t from-marinho to-marinho/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-cacau to-cacau/30" />
         </div>
         <div className="relative max-w-[1280px] mx-auto px-5 md:px-10 py-24 md:py-36">
-          <Titulo nivel="h1" className="text-offwhite text-[44px] md:text-[76px]">O universo CRZA</Titulo>
+          <Titulo nivel="h1" className="text-offwhite text-[44px] md:text-[76px]">Próximos capítulos</Titulo>
           <p className="text-offwhite/75 leading-relaxed mt-5 max-w-[460px]">
-            Uma seleção inicial de peças para conhecer a estética e o cuidado da CRZA. Novas categorias e coleções chegam aos poucos.
+            A CRZA começa no beachwear e se expande para roupas leves, academia e novos momentos.
+            Descubra o que já chegou e acompanhe o que vem depois.
           </p>
         </div>
       </section>
@@ -664,22 +675,22 @@ function PaginaColecao({ onAbrir, irPara }) {
       <section className="bg-areia">
         <div className="max-w-[720px] mx-auto px-5 md:px-10 py-20 md:py-24 text-center">
           <Titulo className="text-[32px] md:text-[44px]">Lista de espera</Titulo>
-          <p className="text-marinho/65 mt-4 leading-relaxed">
+          <p className="text-cacau/65 mt-4 leading-relaxed">
             Quem está na lista compra dois dias antes e escolhe o tamanho primeiro.
           </p>
           {enviado ? (
-            <p className="mt-8 text-azul">Pronto — você entrou na lista. Avisamos por e-mail assim que abrir.</p>
+            <p className="mt-8 text-terra">Pronto — você entrou na lista. Avisaremos sobre as novidades da CRZA.</p>
           ) : (
             <div className="mt-8 flex flex-col sm:flex-row gap-3 max-w-[460px] mx-auto">
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && inscrever()}
                 placeholder="seu@email.com" aria-label="Seu e-mail"
-                className="flex-1 bg-offwhite border border-marinho/15 rounded-full px-5 py-3.5 text-[14px] placeholder:text-marinho/40 focus:border-azul outline-none transition-colors" />
+                className="flex-1 bg-offwhite border border-cacau/15 rounded-full px-5 py-3.5 text-[14px] placeholder:text-cacau/40 focus:border-terra outline-none transition-colors" />
               <Botao onClick={inscrever}>Entrar na lista</Botao>
             </div>
           )}
-          <p className="text-[12px] text-marinho/45 mt-5">
-            Prefere falar pelo WhatsApp? <a href={zap("Quero receber as novidades da CRZA.")} target="_blank" rel="noopener noreferrer" className="text-azul border-b border-azul/40">chama aqui</a>.
+          <p className="text-[12px] text-cacau/45 mt-5">
+            Prefere no WhatsApp? <a href={zap("Quero receber novidades da CRZA.")} target="_blank" rel="noopener noreferrer" className="text-terra border-b border-terra/40">chama aqui</a>.
           </p>
         </div>
       </section>
@@ -692,18 +703,19 @@ function PaginaSobre({ irPara }) {
     <div className="pt-[68px]">
       <section className="max-w-[1280px] mx-auto px-5 md:px-10 pt-16 md:pt-24 pb-16 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-20 items-start">
         <div>
-          <Titulo nivel="h1" className="text-[42px] md:text-[68px] max-w-[520px]">Começamos em Ouro Preto. Vamos muito além.</Titulo>
-          <div className="mt-8 space-y-5 text-marinho/70 leading-relaxed max-w-[540px]">
+          <Titulo nivel="h1" className="text-[42px] md:text-[68px] max-w-[520px]">Começamos pelo sentir.</Titulo>
+          <div className="mt-8 space-y-5 text-cacau/70 leading-relaxed max-w-[540px]">
             <p>
-              A CRZA é uma marca de moda criada em {CONFIG.cidade}. Começamos pelo beachwear, com três biquínis que representam
-              o primeiro capítulo da marca. A próxima etapa é levar essa mesma identidade para roupas leves, academia e novas coleções.
+              A CRZA nasceu em {CONFIG.cidade} com uma ideia simples: criar moda que faça você se sentir linda, confortável e elegante.
+              Começamos pelos biquínis, mas a CRZA foi pensada para crescer para outros momentos do seu dia.
             </p>
             <p>
-              A identidade da CRZA é limpa, marcante e versátil: azul marinho, branco e detalhes que deixam a peça falar por si.
+              A estética da CRZA une azul-marinho, branco e formas limpas. Cada peça é pensada para ter presença sem abrir mão
+              do conforto — porque se sentir bem também é parte da elegância.
             </p>
             <p>
-              Queremos crescer sem perder o cuidado. Cada coleção deve ser bem pensada, confortável de usar e bonita de verdade —
-              com uma estética que faça você se sentir especial em qualquer lugar.
+              Nossa história começa em Ouro Preto, mas não termina aqui. Beachwear, roupas leves, academia e novos capítulos
+              fazem parte de uma marca construída para acompanhar diferentes versões de você.
             </p>
           </div>
           <div className="mt-10 flex flex-wrap gap-3">
@@ -717,13 +729,13 @@ function PaginaSobre({ irPara }) {
       <section className="bg-areia">
         <div className="max-w-[1280px] mx-auto px-5 md:px-10 py-20 md:py-24">
           <Titulo className="text-[32px] md:text-[44px]">Tabela de medidas</Titulo>
-          <p className="text-marinho/60 mt-3 max-w-[460px] leading-relaxed">
+          <p className="text-cacau/60 mt-3 max-w-[460px] leading-relaxed">
             Medidas do corpo em centímetros. Na dúvida entre dois tamanhos, vá no maior — o lastex acomoda.
           </p>
           <div className="mt-8 overflow-x-auto">
             <table className="w-full min-w-[460px] text-left text-[15px]">
               <thead>
-                <tr className="border-b border-marinho/25 text-marinho/60 text-[13px]">
+                <tr className="border-b border-cacau/25 text-cacau/60 text-[13px]">
                   <th className="py-3 font-medium">Tamanho</th>
                   <th className="py-3 font-medium">Busto</th>
                   <th className="py-3 font-medium">Cintura</th>
@@ -732,7 +744,7 @@ function PaginaSobre({ irPara }) {
               </thead>
               <tbody>
                 {MEDIDAS.map(([t, b, c, q]) => (
-                  <tr key={t} className="border-b border-marinho/10">
+                  <tr key={t} className="border-b border-cacau/10">
                     <td className="py-3.5 font-display text-[18px]">{t}</td>
                     <td className="py-3.5">{b}</td>
                     <td className="py-3.5">{c}</td>
@@ -742,7 +754,7 @@ function PaginaSobre({ irPara }) {
               </tbody>
             </table>
           </div>
-          <p className="text-[13px] text-marinho/50 mt-5">Escolha o seu tamanho com segurança. Se precisar de ajuda, fale com a CRZA pelo WhatsApp.</p>
+          <p className="text-[13px] text-cacau/50 mt-5">A modelo das fotos tem 1,72 m e veste M.</p>
         </div>
       </section>
     </div>
@@ -763,36 +775,36 @@ function PaginaContato() {
     window.open(zap(`Oi, sou ${form.nome}. ${form.mensagem}`), "_blank", "noopener");
   };
 
-  const campo = "w-full bg-offwhite border border-marinho/15 rounded-2xl px-5 py-3.5 text-[15px] placeholder:text-marinho/40 focus:border-azul outline-none transition-colors";
+  const campo = "w-full bg-offwhite border border-cacau/15 rounded-2xl px-5 py-3.5 text-[15px] placeholder:text-cacau/40 focus:border-terra outline-none transition-colors";
 
   return (
     <div className="pt-[68px]">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 py-16 md:py-24 grid lg:grid-cols-2 gap-14 lg:gap-24">
         <div>
           <Titulo nivel="h1" className="text-[42px] md:text-[64px]">Fala com a gente</Titulo>
-          <p className="text-marinho/65 mt-5 leading-relaxed max-w-[420px]">
+          <p className="text-cacau/65 mt-5 leading-relaxed max-w-[420px]">
             Dúvida de tamanho, troca, encomenda em outra cor. Respondemos de segunda a sábado, das 9h às 19h.
           </p>
           <div className="mt-10 space-y-5">
-            <a href={zap("Oi! Vim pelo site da CRZA.")} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-4 border-t border-marinho/15 pt-5 group">
-              <span className="text-azul"><IconeZap tam={22} /></span>
+            <a href={zap(CONFIG.mensagemWhatsApp)} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-4 border-t border-cacau/15 pt-5 group">
+              <span className="text-terra"><IconeZap tam={22} /></span>
               <span>
                 <span className="block font-display text-[20px]">WhatsApp</span>
-                <span className="block text-marinho/55 text-[14px] group-hover:text-azul transition-colors">Resposta mais rápida</span>
+                <span className="block text-cacau/55 text-[14px] group-hover:text-terra transition-colors">Resposta mais rápida</span>
               </span>
             </a>
             <a href={insta} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-4 border-t border-marinho/15 pt-5 group">
-              <span className="text-azul"><IconeInsta tam={22} /></span>
+              className="flex items-center gap-4 border-t border-cacau/15 pt-5 group">
+              <span className="text-terra"><IconeInsta tam={22} /></span>
               <span>
                 <span className="block font-display text-[20px]">@{CONFIG.instagram}</span>
-                <span className="block text-marinho/55 text-[14px] group-hover:text-azul transition-colors">Novidades e bastidores</span>
+                <span className="block text-cacau/55 text-[14px] group-hover:text-terra transition-colors">Novidades e bastidores</span>
               </span>
             </a>
-            <div className="border-t border-marinho/15 pt-5">
+            <div className="border-t border-cacau/15 pt-5">
               <p className="font-display text-[20px]">{CONFIG.email}</p>
-              <p className="text-marinho/55 text-[14px]">{CONFIG.cidade} · envio para todo o Brasil</p>
+              <p className="text-cacau/55 text-[14px]">{CONFIG.cidade} · envio para todo o Brasil</p>
             </div>
           </div>
         </div>
@@ -801,7 +813,7 @@ function PaginaContato() {
           {ok ? (
             <div className="py-10 text-center">
               <Titulo className="text-[28px]">Mensagem a caminho</Titulo>
-              <p className="text-marinho/65 mt-3">Abrimos o WhatsApp com o seu texto. Se não abriu, chame direto pelo botão ao lado.</p>
+              <p className="text-cacau/65 mt-3">Abrimos o WhatsApp com o seu texto. Se não abriu, chame direto pelo botão ao lado.</p>
               <div className="mt-6"><Botao variante="linha" onClick={() => setOk(false)}>Escrever outra</Botao></div>
             </div>
           ) : (
@@ -819,7 +831,7 @@ function PaginaContato() {
                 <span className="sr-only">Mensagem</span>
                 <textarea rows="5" className={`${campo} resize-none`} placeholder="Como podemos ajudar?" value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} />
               </label>
-              {erro && <p className="text-azulesc text-[14px]">{erro}</p>}
+              {erro && <p className="text-terraesc text-[14px]">{erro}</p>}
               <Botao onClick={enviar} className="w-full">Enviar pelo WhatsApp</Botao>
             </div>
           )}
@@ -865,7 +877,7 @@ function ModalProduto({ produto, aoFechar, aoAdicionar }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" role="dialog" aria-modal="true" aria-label={`Biquíni ${produto.nome}`}>
-      <button type="button" className="absolute inset-0 bg-marinho/60 backdrop-blur-sm" onClick={aoFechar} aria-label="Fechar" />
+      <button type="button" className="absolute inset-0 bg-cacau/60 backdrop-blur-sm" onClick={aoFechar} aria-label="Fechar" />
       <div className="relative bg-offwhite w-full md:max-w-[900px] md:rounded-3xl max-h-[92svh] overflow-y-auto subir"
            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <button type="button" onClick={aoFechar} aria-label="Fechar"
@@ -875,37 +887,37 @@ function ModalProduto({ produto, aoFechar, aoAdicionar }) {
 
         <div className="grid md:grid-cols-2">
           <div className="md:h-full">
-            <Foto src={fotos[0]} alt={`${produto.nome} — CRZA`} semente={indice} className="aspect-[4/5] md:aspect-auto md:h-full w-full" />
+            <Foto src={fotos[0]} alt={`Biquíni ${produto.nome}`} semente={indice} className="aspect-[4/5] md:aspect-auto md:h-full w-full" />
           </div>
 
           <div className="p-6 md:p-9">
-            <p className="text-[12px] tracking-[0.16em] text-marinho/50">{produto.categoria} · {produto.modelagem}</p>
+            <p className="text-[12px] tracking-[0.16em] text-cacau/50">{produto.categoria} · {produto.modelagem}</p>
             <Titulo className="text-[34px] md:text-[42px] mt-2">{produto.nome}</Titulo>
 
             <div className="mt-4">
               <p className="text-[24px]">{brl(produto.preco)}</p>
-              <p className="text-[14px] text-marinho/60 mt-1">
+              <p className="text-[14px] text-cacau/60 mt-1">
                 {brl(comPix(produto.preco))} no Pix (5% off) · {CONFIG.parcelas}x de {brl(parcela(produto.preco))} sem juros
               </p>
             </div>
 
-            <p className="text-marinho/70 leading-relaxed mt-6 text-[15px]">{produto.descricao}</p>
-            <p className="text-marinho/50 text-[13px] mt-3">{produto.tecido} · bojo {produto.bojo ? "removível" : "sem bojo"}</p>
+            <p className="text-cacau/70 leading-relaxed mt-6 text-[15px]">{produto.descricao}</p>
+            <p className="text-cacau/50 text-[13px] mt-3">{produto.tecido} · bojo {produto.bojo ? "removível" : "sem bojo"}</p>
 
             <div className="mt-8">
-              <p className="text-[13px] text-marinho/60 mb-3">Cor: <span className="text-marinho">{CORES[corAtual].nome}</span></p>
+              <p className="text-[13px] text-cacau/60 mb-3">Cor: <span className="text-cacau">{CORES[corAtual].nome}</span></p>
               <div className="flex items-center gap-3">
                 {produto.cores.map((c) => <Amostra key={c} corId={c} ativa={corAtual === c} onClick={() => setCor(c)} tamanho={32} />)}
               </div>
             </div>
 
             <div className="mt-7">
-              <p className="text-[13px] text-marinho/60 mb-3">Tamanho</p>
+              <p className="text-[13px] text-cacau/60 mb-3">Tamanho</p>
               <div className="flex flex-wrap gap-2">
                 {TAMANHOS.map((t) => (
                   <button key={t} type="button" onClick={() => { setTamanho(t); setAviso(""); }} aria-pressed={tamanho === t}
                     className={`w-[54px] h-[44px] rounded-xl border text-[14px] transition-colors ${
-                      tamanho === t ? "bg-marinho text-offwhite border-marinho" : "border-marinho/20 hover:border-marinho/60"}`}>
+                      tamanho === t ? "bg-cacau text-offwhite border-cacau" : "border-cacau/20 hover:border-cacau/60"}`}>
                     {t}
                   </button>
                 ))}
@@ -913,18 +925,18 @@ function ModalProduto({ produto, aoFechar, aoAdicionar }) {
             </div>
 
             <div className="mt-7 flex items-center gap-4">
-              <div className="flex items-center border border-marinho/20 rounded-full">
-                <button type="button" onClick={() => setQtd(Math.max(1, qtd - 1))} aria-label="Diminuir quantidade" className="p-3 hover:text-azul transition-colors"><IconeMenos tam={16} /></button>
+              <div className="flex items-center border border-cacau/20 rounded-full">
+                <button type="button" onClick={() => setQtd(Math.max(1, qtd - 1))} aria-label="Diminuir quantidade" className="p-3 hover:text-terra transition-colors"><IconeMenos tam={16} /></button>
                 <span className="w-8 text-center text-[15px]" aria-live="polite">{qtd}</span>
-                <button type="button" onClick={() => setQtd(qtd + 1)} aria-label="Aumentar quantidade" className="p-3 hover:text-azul transition-colors"><IconeMais tam={16} /></button>
+                <button type="button" onClick={() => setQtd(qtd + 1)} aria-label="Aumentar quantidade" className="p-3 hover:text-terra transition-colors"><IconeMais tam={16} /></button>
               </div>
               <Botao onClick={adicionar} className="flex-1">Adicionar à sacola</Botao>
             </div>
 
-            {aviso && <p className="text-azulesc text-[14px] mt-3">{aviso}</p>}
-            {addOk && <p className="text-azul text-[14px] mt-3">Adicionado à sacola.</p>}
+            {aviso && <p className="text-terraesc text-[14px] mt-3">{aviso}</p>}
+            {addOk && <p className="text-terra text-[14px] mt-3">Adicionado à sacola.</p>}
 
-            <p className="text-[13px] text-marinho/50 mt-6 border-t border-marinho/12 pt-5">
+            <p className="text-[13px] text-cacau/50 mt-6 border-t border-cacau/12 pt-5">
               Frete grátis acima de {brl(CONFIG.freteGratisAcima)} · troca em até 7 dias · envio em 2 dias úteis
             </p>
           </div>
@@ -958,24 +970,24 @@ function Sacola({ aberta, aoFechar, carrinho, irPara }) {
 
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Sacola de compras">
-      <button type="button" className="absolute inset-0 bg-marinho/55 backdrop-blur-sm" onClick={aoFechar} aria-label="Fechar sacola" />
+      <button type="button" className="absolute inset-0 bg-cacau/55 backdrop-blur-sm" onClick={aoFechar} aria-label="Fechar sacola" />
       <aside className="absolute right-0 top-0 bottom-0 w-full sm:w-[440px] bg-offwhite flex flex-col shadow-2xl"
              style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <div className="flex items-center justify-between px-6 h-[68px] border-b border-marinho/10 shrink-0">
+        <div className="flex items-center justify-between px-6 h-[68px] border-b border-cacau/10 shrink-0">
           <Titulo className="text-[24px]">Sua sacola</Titulo>
-          <button type="button" onClick={aoFechar} aria-label="Fechar" className="p-2 hover:text-azul transition-colors"><IconeX tam={20} /></button>
+          <button type="button" onClick={aoFechar} aria-label="Fechar" className="p-2 hover:text-terra transition-colors"><IconeX tam={20} /></button>
         </div>
 
         {itens.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-10">
-            <p className="text-marinho/55 leading-relaxed">Sua sacola está vazia. Comece pela coleção CRZA — peças pensadas para você.</p>
+            <p className="text-cacau/55 leading-relaxed">Sua sacola está vazia. Comece pela linha Biquínis — três cortes, três tons.</p>
             <div className="mt-7"><Botao onClick={() => { aoFechar(); irPara("biquinis"); }}>Ver os biquínis</Botao></div>
           </div>
         ) : (
           <>
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
               {falta > 0 && (
-                <p className="text-[13px] bg-areia rounded-xl px-4 py-3 text-marinho/70">
+                <p className="text-[13px] bg-areia rounded-xl px-4 py-3 text-cacau/70">
                   Faltam {brl(falta)} para o frete grátis.
                 </p>
               )}
@@ -983,19 +995,19 @@ function Sacola({ aberta, aoFechar, carrinho, irPara }) {
                 const indice = PRODUTOS.findIndex((p) => p.id === i.id);
                 const fotos = IMAGES.produtos[i.id] || [];
                 return (
-                  <div key={i.chave} className="flex gap-4 border-b border-marinho/10 pb-5">
+                  <div key={i.chave} className="flex gap-4 border-b border-cacau/10 pb-5">
                     <Foto src={fotos[0]} alt={i.nome} semente={indice} className="w-[76px] h-[96px] shrink-0 rounded-lg" />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between gap-3">
                         <h3 className="font-display text-[19px]">{i.nome}</h3>
-                        <button type="button" onClick={() => remover(i.chave)} aria-label={`Remover ${i.nome}`} className="text-marinho/40 hover:text-azul transition-colors"><IconeX tam={16} /></button>
+                        <button type="button" onClick={() => remover(i.chave)} aria-label={`Remover ${i.nome}`} className="text-cacau/40 hover:text-terra transition-colors"><IconeX tam={16} /></button>
                       </div>
-                      <p className="text-[13px] text-marinho/55 mt-0.5">Tam. {i.tamanho} · {CORES[i.cor].nome}</p>
+                      <p className="text-[13px] text-cacau/55 mt-0.5">Tam. {i.tamanho} · {CORES[i.cor].nome}</p>
                       <div className="flex items-center justify-between mt-3">
-                        <div className="flex items-center border border-marinho/20 rounded-full">
-                          <button type="button" onClick={() => mudarQtd(i.chave, -1)} aria-label="Diminuir" className="p-2 hover:text-azul transition-colors"><IconeMenos tam={14} /></button>
+                        <div className="flex items-center border border-cacau/20 rounded-full">
+                          <button type="button" onClick={() => mudarQtd(i.chave, -1)} aria-label="Diminuir" className="p-2 hover:text-terra transition-colors"><IconeMenos tam={14} /></button>
                           <span className="w-7 text-center text-[14px]">{i.qtd}</span>
-                          <button type="button" onClick={() => mudarQtd(i.chave, 1)} aria-label="Aumentar" className="p-2 hover:text-azul transition-colors"><IconeMais tam={14} /></button>
+                          <button type="button" onClick={() => mudarQtd(i.chave, 1)} aria-label="Aumentar" className="p-2 hover:text-terra transition-colors"><IconeMais tam={14} /></button>
                         </div>
                         <span className="text-[15px]">{brl(i.preco * i.qtd)}</span>
                       </div>
@@ -1003,20 +1015,20 @@ function Sacola({ aberta, aoFechar, carrinho, irPara }) {
                   </div>
                 );
               })}
-              <button type="button" onClick={limpar} className="text-[13px] text-marinho/45 hover:text-azul transition-colors">Esvaziar sacola</button>
+              <button type="button" onClick={limpar} className="text-[13px] text-cacau/45 hover:text-terra transition-colors">Esvaziar sacola</button>
             </div>
 
-            <div className="border-t border-marinho/12 px-6 py-5 shrink-0 bg-areia/50">
+            <div className="border-t border-cacau/12 px-6 py-5 shrink-0 bg-areia/50">
               <div className="flex justify-between items-baseline">
-                <span className="text-marinho/65 text-[14px]">Subtotal</span>
+                <span className="text-cacau/65 text-[14px]">Subtotal</span>
                 <span className="text-[20px]">{brl(total)}</span>
               </div>
-              <div className="mt-2 space-y-1 text-[13px] text-marinho/60">
-                <p className="flex justify-between"><span>No Pix (5% de desconto)</span><span className="text-azul">{brl(comPix(total))}</span></p>
+              <div className="mt-2 space-y-1 text-[13px] text-cacau/60">
+                <p className="flex justify-between"><span>No Pix (5% de desconto)</span><span className="text-terra">{brl(comPix(total))}</span></p>
                 <p className="flex justify-between"><span>No cartão</span><span>{CONFIG.parcelas}x de {brl(parcela(total))} sem juros</span></p>
               </div>
               <Botao onClick={finalizar} className="w-full mt-5">Finalizar pelo WhatsApp</Botao>
-              <p className="text-[12px] text-marinho/45 text-center mt-3">Frete calculado na conversa, conforme o CEP.</p>
+              <p className="text-[12px] text-cacau/45 text-center mt-3">Frete calculado na conversa, conforme o CEP.</p>
             </div>
           </>
         )}
@@ -1052,26 +1064,26 @@ function Busca({ aberta, aoFechar, onAbrirProduto, irParaBusca }) {
 
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Buscar produtos">
-      <button type="button" className="absolute inset-0 bg-marinho/60 backdrop-blur-sm" onClick={aoFechar} aria-label="Fechar busca" />
+      <button type="button" className="absolute inset-0 bg-cacau/60 backdrop-blur-sm" onClick={aoFechar} aria-label="Fechar busca" />
       <div className="relative bg-offwhite max-h-[85svh] overflow-y-auto" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="max-w-[760px] mx-auto px-5 md:px-8 py-7">
-          <div className="flex items-center gap-3 border-b border-marinho/20 pb-4">
-            <IconeBusca tam={22} className="text-marinho/40 shrink-0" />
+          <div className="flex items-center gap-3 border-b border-cacau/20 pb-4">
+            <IconeBusca tam={22} className="text-cacau/40 shrink-0" />
             <input ref={ref} type="search" value={termo} onChange={(e) => setTermo(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && termo.trim()) { irParaBusca(termo); aoFechar(); } }}
-              placeholder="Buscar produtos"
-              className="flex-1 bg-transparent text-[22px] md:text-[26px] font-display font-light placeholder:text-marinho/30 outline-none" />
-            <button type="button" onClick={aoFechar} aria-label="Fechar" className="p-2 text-marinho/50 hover:text-azul transition-colors"><IconeX tam={20} /></button>
+              placeholder="Buscar biquínis"
+              className="flex-1 bg-transparent text-[22px] md:text-[26px] font-display font-light placeholder:text-cacau/30 outline-none" />
+            <button type="button" onClick={aoFechar} aria-label="Fechar" className="p-2 text-cacau/50 hover:text-terra transition-colors"><IconeX tam={20} /></button>
           </div>
 
-          <p className="text-[12px] tracking-[0.14em] text-marinho/45 mt-6 mb-4">
+          <p className="text-[12px] tracking-[0.14em] text-cacau/45 mt-6 mb-4">
             {t ? `${achados.length} ${achados.length === 1 ? "resultado" : "resultados"}` : "Mais procurados"}
           </p>
 
           {achados.length === 0 ? (
-            <p className="text-marinho/55 py-8">Nada encontrado. Tente “Aura”, “Bali” ou “Duna”.</p>
+            <p className="text-cacau/55 py-8">Nada com esse nome. Tente “cortininha”, “Aura” ou “tomara que caia”.</p>
           ) : (
-            <ul className="divide-y divide-marinho/10">
+            <ul className="divide-y divide-cacau/10">
               {achados.map((p) => {
                 const indice = PRODUTOS.findIndex((x) => x.id === p.id);
                 const fotos = IMAGES.produtos[p.id] || [];
@@ -1082,10 +1094,10 @@ function Busca({ aberta, aoFechar, onAbrirProduto, irParaBusca }) {
                       <Foto src={fotos[0]} alt="" semente={indice} className="w-[56px] h-[70px] shrink-0 rounded-md" />
                       <span className="flex-1">
                         <span className="block font-display text-[20px]">{p.nome}</span>
-                        <span className="block text-[13px] text-marinho/55">{p.modelagem} · {p.categoria}</span>
+                        <span className="block text-[13px] text-cacau/55">{p.modelagem} · {p.categoria}</span>
                       </span>
                       <span className="text-[15px]">{brl(p.preco)}</span>
-                      <span className="text-marinho/30 group-hover:text-azul transition-colors"><IconeSeta tam={18} /></span>
+                      <span className="text-cacau/30 group-hover:text-terra transition-colors"><IconeSeta tam={18} /></span>
                     </button>
                   </li>
                 );
@@ -1104,26 +1116,26 @@ function Busca({ aberta, aoFechar, onAbrirProduto, irParaBusca }) {
 function Rodape({ irPara }) {
   const ano = new Date().getFullYear();
   return (
-    <footer className="bg-marinho text-offwhite">
+    <footer className="bg-cacau text-offwhite">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 py-16 md:py-20">
         <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
           <div>
             <p className="font-display text-[30px] tracking-[0.34em] pl-[0.34em]">CRZA</p>
             <p className="text-offwhite/60 text-[14px] leading-relaxed mt-4 max-w-[260px]">
-              Moda leve, confortável e elegante. Nascida em {CONFIG.cidade}, feita para ir muito além dela.
+              Moda para sentir: beleza, conforto e elegância em cada capítulo. Nascida em {CONFIG.cidade}.
             </p>
             <div className="flex items-center gap-3 mt-6">
               <a href={insta} target="_blank" rel="noopener noreferrer" aria-label="Instagram"
-                className="border border-offwhite/25 rounded-full p-2.5 hover:bg-offwhite hover:text-marinho transition-colors"><IconeInsta tam={18} /></a>
-              <a href={zap("Oi! Vim pelo site da CRZA.")} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"
-                className="border border-offwhite/25 rounded-full p-2.5 hover:bg-offwhite hover:text-marinho transition-colors"><IconeZap tam={18} /></a>
+                className="border border-offwhite/25 rounded-full p-2.5 hover:bg-offwhite hover:text-cacau transition-colors"><IconeInsta tam={18} /></a>
+              <a href={zap(CONFIG.mensagemWhatsApp)} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"
+                className="border border-offwhite/25 rounded-full p-2.5 hover:bg-offwhite hover:text-cacau transition-colors"><IconeZap tam={18} /></a>
             </div>
           </div>
 
           <nav aria-label="Loja">
             <h2 className="text-[13px] tracking-[0.14em] text-offwhite/45 mb-4">Loja</h2>
             <ul className="space-y-2.5 text-[15px]">
-              {[["biquinis", "Biquínis"], ["colecao", "Coleções"], ["sobre", "Sobre a CRZA"]].map(([id, r]) => (
+              {[["biquinis", "Biquínis"], ["colecao", "CRZA — Novos capítulos"], ["sobre", "Tabela de medidas"]].map(([id, r]) => (
                 <li key={r}><button type="button" onClick={() => irPara(id)} className="text-offwhite/75 hover:text-offwhite transition-colors">{r}</button></li>
               ))}
             </ul>
@@ -1139,9 +1151,9 @@ function Rodape({ irPara }) {
           </nav>
 
           <div>
-            <h2 className="text-[13px] tracking-[0.14em] text-offwhite/45 mb-4">Pagamento e envio</h2>
+            <h2 className="text-[13px] tracking-[0.14em] text-offwhite/45 mb-4">Pagamento e entrega</h2>
             <ul className="space-y-2.5 text-[15px] text-offwhite/75">
-              <li>Pix com 5% de desconto</li>
+              <li>Pix com {Math.round(CONFIG.descontoPix * 100)}% de desconto</li>
               <li>Cartão em até {CONFIG.parcelas}x sem juros</li>
               <li>Frete grátis acima de {brl(CONFIG.freteGratisAcima)}</li>
               <li>Envio para todo o Brasil</li>
@@ -1161,11 +1173,12 @@ function Rodape({ irPara }) {
 /* =========================================================================
    17. APP
    ========================================================================= */
-const PAGINAS = ["inicio", "biquinis", "colecao", "sobre", "contato"];
+const PAGINAS = ["inicio", "biquinis", "colecao", "sobre", "contato", "admin"];
 
 function App() {
   const hashInicial = (window.location.hash || "").replace("#", "");
   const [pagina, setPagina] = useState(PAGINAS.includes(hashInicial) ? hashInicial : "inicio");
+  const [dados, setDados] = useState(DADOS_INICIAIS);
   const [produtoAberto, setProdutoAberto] = useState(null);
   const [sacolaAberta, setSacolaAberta] = useState(false);
   const [buscaAberta, setBuscaAberta] = useState(false);
@@ -1198,6 +1211,15 @@ function App() {
     irPara("biquinis");
   }, [irPara]);
 
+  const salvarDados = useCallback((novosDados) => {
+    aplicarDados(novosDados);
+    setDados(novosDados);
+  }, []);
+
+  if (pagina === "admin") {
+    return <Admin dados={dados} onSalvar={salvarDados} onVoltar={() => irPara("inicio")} />;
+  }
+
   return (
     <div className="min-h-screen bg-offwhite">
       <Cabecalho
@@ -1213,7 +1235,6 @@ function App() {
           <>
             <Hero irPara={irPara} />
             <Destaques onAbrir={abrirProduto} irPara={irPara} />
-            <CategoriasFuturas irPara={irPara} />
             <Identidade />
             <BannerColecao irPara={irPara} />
             <SecaoInstagram />
@@ -1227,9 +1248,9 @@ function App() {
 
       <Rodape irPara={irPara} />
 
-      <a href={zap("Oi! Vim pelo site da CRZA e tenho uma dúvida.")} target="_blank" rel="noopener noreferrer"
+      <a href={zap(CONFIG.mensagemWhatsApp)} target="_blank" rel="noopener noreferrer"
         aria-label="Falar no WhatsApp"
-        className="fixed right-5 z-40 bg-azul text-offwhite rounded-full p-4 shadow-lg hover:bg-azulesc transition-colors"
+        className="fixed right-5 z-40 bg-terra text-offwhite rounded-full p-4 shadow-lg hover:bg-terraesc transition-colors"
         style={{ bottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}>
         <IconeZap tam={24} />
       </a>

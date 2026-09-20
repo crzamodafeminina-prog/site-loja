@@ -4,13 +4,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        marinho: "#071A33",
-        azul: "#12345A",
-        azulesc: "#092746",
-        branco: "#FFFFFF",
-        areia: "#E8E2D8",
-        areiaesc: "#D8D0C5",
-        offwhite: "#F7F8FA",
+        areia: "#F7F8FA",
+        areiaesc: "#E8E3DB",
+        offwhite: "#FFFFFF",
+        terra: "#12345A",
+        terraesc: "#071A33",
+        cacau: "#071A33",
+        oliva: "#12345A",
       },
       fontFamily: {
         display: ["Fraunces", "Georgia", "serif"],
